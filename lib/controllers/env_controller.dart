@@ -1,8 +1,39 @@
+import 'dart:convert';
+
 import 'package:get/get.dart';
 import 'package:http/http.dart' as http;
 
-class CounterController extends GetxController {
+class EnvController extends GetxController {
+  final String baseUrl = 'localhost:3000/';
+  final Map<String, String> headers = {'Content-Type': 'application/json'};
   var counter = 0.obs;
+  Map<String, dynamic> requestData = {
+    "latitude": 0,
+    "longitude": 0,
+    "elevation": 1400,
+    "atmospheric_model_type": "standard_atmosphere",
+    "atmospheric_model_file": "GFS",
+    "date": "2024-01-01T00:00:00.000000"
+  }.obs;
+
+  Future<void> postData() async {
+    try {
+      var requestBody = jsonEncode(requestData);
+      final response = await http.post(
+        Uri.parse('$baseUrl/environment'),
+        headers: headers,
+        body: requestBody,
+      );
+      if (response.statusCode == 200) {
+        // Successfully created resource in the API
+        print('Resource created successfully! ${response.body}');
+      } else {
+        print('Error creating resource. Status code: ${response.statusCode}');
+      }
+    } catch (e) {
+      print('Error creating resource: $e');
+    }
+  }
 
   void increment() {
     counter++;
@@ -21,23 +52,6 @@ class CounterController extends GetxController {
       }
     } catch (e) {
       print('Error fetching data from API: $e');
-    }
-  }
-
-  Future<void> postData() async {
-    try {
-      final response = await http.post(
-        Uri.parse('https://api.example.com/data'),
-        body: {'key': 'value'},
-      );
-      if (response.statusCode == 201) {
-        // Successfully created resource in the API
-        print('Resource created successfully! ${response.body}');
-      } else {
-        print('Error creating resource. Status code: ${response.statusCode}');
-      }
-    } catch (e) {
-      print('Error creating resource: $e');
     }
   }
 
