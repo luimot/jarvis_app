@@ -1,16 +1,17 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_datetime_picker/flutter_datetime_picker.dart';
-import 'dart:convert';
-import 'package:http/http.dart' as http;
+import 'package:get/get.dart';
+import 'package:jarvis_app/controllers/env_controller.dart';
 
-class EnvironmentPage extends StatefulWidget {
-  const EnvironmentPage({super.key});
+class Environment extends StatefulWidget {
+  const Environment({super.key});
 
   @override
-  _EnvironmentPageState createState() => _EnvironmentPageState();
+  _EnvironmentState createState() => _EnvironmentState();
 }
 
-class _EnvironmentPageState extends State<EnvironmentPage> {
+class _EnvironmentState extends State<Environment> {
+  final EnvController envController = Get.put(EnvController());
+
   TextEditingController latitudeController = TextEditingController();
   TextEditingController longitudeController = TextEditingController();
   TextEditingController altitudeController = TextEditingController();
@@ -18,61 +19,56 @@ class _EnvironmentPageState extends State<EnvironmentPage> {
   String selectedModelFile = "GFS";
   DateTime selectedDate = DateTime.now();
 
-  void _selectDate(BuildContext context) async {
-    DateTime? picked = await DatePicker.showDatePicker(
-      context,
-      showTitleActions: true,
-      minTime: DateTime(2022, 1, 1),
-      maxTime: DateTime(2030, 12, 31),
-      currentTime: selectedDate,
-      locale: LocaleType.en,
+  Map<String, dynamic> requestData = {};
+
+  Future<void> _selectDate(BuildContext context) async {
+    var picked = await showDatePicker(
+      context: context,
+      initialDate: selectedDate,
+      firstDate: DateTime(2022, 1, 1),
+      lastDate: DateTime(2030, 12, 31),
+      builder: (BuildContext context, Widget? child) {
+        return Theme(
+          data: ThemeData.light().copyWith(
+            primaryColor: Colors.blue, // adjust as needed
+            hintColor: Colors.blueAccent, // adjust as needed
+            colorScheme: const ColorScheme.light(primary: Colors.blue),
+            buttonTheme:
+                const ButtonThemeData(textTheme: ButtonTextTheme.primary),
+          ),
+          child: child!,
+        );
+      },
     );
 
     if (picked != null && picked != selectedDate) {
       setState(() {
         selectedDate = picked;
+        _updateRequestData();
       });
     }
   }
 
-  void makePostRequest() async {
-    var url = Uri.parse('https://example.com/api/your_endpoint');
+  void simulate() async {
+    envController.postData(requestData);
+  }
 
-    try {
-      Map<String, dynamic> requestData = {
-        "latitude": double.parse(latitudeController.text),
-        "longitude": double.parse(longitudeController.text),
-        "elevation": double.parse(altitudeController.text),
-        "atmospheric_model_type": selectedModelType,
-        "atmospheric_model_file": selectedModelFile,
-        "date": selectedDate.toIso8601String(),
-      };
-
-      var requestBody = jsonEncode(requestData);
-
-      var response = await http.post(
-        url,
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: requestBody,
-      );
-
-      if (response.statusCode == 200) {
-        print('Response: ${response.body}');
-      } else {
-        print('Error: ${response.statusCode}, ${response.reasonPhrase}');
-      }
-    } catch (error) {
-      print('Error: $error');
-    }
+  void _updateRequestData() {
+    requestData = {
+      "latitude": double.tryParse(latitudeController.text) ?? 0.0,
+      "longitude": double.tryParse(longitudeController.text) ?? 0.0,
+      "elevation": double.tryParse(altitudeController.text) ?? 0.0,
+      "atmospheric_model_type": selectedModelType,
+      "atmospheric_model_file": selectedModelFile,
+      "date": selectedDate.toIso8601String(),
+    };
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('HTTP POST Request'),
+        title: const Text('Environment'),
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -81,27 +77,31 @@ class _EnvironmentPageState extends State<EnvironmentPage> {
           children: [
             TextField(
               controller: latitudeController,
-              keyboardType: TextInputType.numberWithOptions(decimal: true),
-              decoration: InputDecoration(labelText: 'Latitude'),
+              keyboardType:
+                  const TextInputType.numberWithOptions(decimal: true),
+              decoration: const InputDecoration(labelText: 'Latitude'),
             ),
             TextField(
               controller: longitudeController,
-              keyboardType: TextInputType.numberWithOptions(decimal: true),
-              decoration: InputDecoration(labelText: 'Longitude'),
+              keyboardType:
+                  const TextInputType.numberWithOptions(decimal: true),
+              decoration: const InputDecoration(labelText: 'Longitude'),
             ),
             TextField(
               controller: altitudeController,
-              keyboardType: TextInputType.numberWithOptions(decimal: true),
-              decoration: InputDecoration(labelText: 'Altitude'),
+              keyboardType:
+                  const TextInputType.numberWithOptions(decimal: true),
+              decoration: const InputDecoration(labelText: 'Altitude'),
             ),
             DropdownButtonFormField(
               value: selectedModelType,
               onChanged: (value) {
                 setState(() {
                   selectedModelType = value!;
+                  _updateRequestData();
                 });
               },
-              items: [
+              items: const [
                 DropdownMenuItem(
                   value: 'standard_atmosphere',
                   child: Text('Standard Atmosphere'),
@@ -111,16 +111,18 @@ class _EnvironmentPageState extends State<EnvironmentPage> {
                   child: Text('Custom Atmosphere'),
                 ),
               ],
-              decoration: InputDecoration(labelText: 'Atmospheric Model Type'),
+              decoration:
+                  const InputDecoration(labelText: 'Atmospheric Model Type'),
             ),
             DropdownButtonFormField(
               value: selectedModelFile,
               onChanged: (value) {
                 setState(() {
                   selectedModelFile = value!;
+                  _updateRequestData();
                 });
               },
-              items: [
+              items: const [
                 DropdownMenuItem(
                   value: 'GFS',
                   child: Text('GFS'),
@@ -130,22 +132,23 @@ class _EnvironmentPageState extends State<EnvironmentPage> {
                   child: Text('ECMWF'),
                 ),
               ],
-              decoration: InputDecoration(labelText: 'Atmospheric Model File'),
+              decoration:
+                  const InputDecoration(labelText: 'Atmospheric Model File'),
             ),
             Row(
               children: [
-                Text('Date: ${selectedDate.toLocal()}'),
-                SizedBox(width: 20),
+                Text('Date: ${selectedDate.toUtc()} (UTC)'),
+                const Padding(padding: EdgeInsets.only(top: 100, left: 20)),
                 ElevatedButton(
                   onPressed: () => _selectDate(context),
-                  child: Text('Select Date'),
+                  child: const Text('Select Date'),
                 ),
               ],
             ),
-            SizedBox(height: 20),
+            const SizedBox(height: 20),
             ElevatedButton(
-              onPressed: makePostRequest,
-              child: Text('Send POST Request'),
+              onPressed: simulate,
+              child: const Text('Simulate'),
             ),
           ],
         ),

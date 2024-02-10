@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:jarvis_app/pages/environment.dart';
 
 // This drawer widget was heavily based on: https://gist.github.com/eduardoflorence/9ef5035ac7e57eb2f15ceabcae430538 all due credit to this source
 void main() {
@@ -28,17 +29,19 @@ void main() {
 }
 
 class MainDrawer extends StatelessWidget {
+  const MainDrawer({super.key});
+
   @override
   Widget build(BuildContext context) {
     return Drawer(
       child: ListView(
         padding: EdgeInsets.zero,
         children: <Widget>[
-          DrawerHeader(
-            child: Text('Drawer Header'),
+          const DrawerHeader(
             decoration: BoxDecoration(
               color: Colors.blue,
             ),
+            child: Text('Drawer Header'),
           ),
           ListTile(
             title: Text('Home'),
@@ -119,12 +122,9 @@ class EnvironmentPage extends GetView<EnvironmentPageController> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('Environment')),
-      drawer: MainDrawer(),
-      body: Center(
-        child: Text(controller.title),
-      ),
-    );
+        appBar: AppBar(title: Text('Environment')),
+        drawer: MainDrawer(),
+        body: Environment());
   }
 }
 
